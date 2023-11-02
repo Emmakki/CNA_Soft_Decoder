@@ -22,11 +22,25 @@ function c_cor = SOFT_DECODER_GROUPE3(c, H, p, MAX_ITER)
 % Initialisation du mot code c_cor qui va être corigé à chaque itération
 c_cor = c;
 
+% Réccupération de la taille de la matrice H
+[M, N] = size(H);
+
+% Initialisation des matrices contenant les messages transmits entre les
+% noeuds (v_nodes et c_nodes)
+v_nodes_msg_0 = -1*ones(M,N);
+v_nodes_msg_1 = -1*ones(M,N);
+
 % Envoie du premier message 
 % Des variable nodes (v_nodes) vers les check nodes (c_nodes)
 % Avec les probabilités p pour c(i) == 1 sachant le signal reçu
-v_nodes_msg_0 = (1-p).*H;
-v_nodes_msg_1 = p.*H;
+for j = 1:M
+    for i = 1:N
+        if H(j,i) == 1
+            v_nodes_msg_0(j,i) = 1-p(j);
+            v_nodes_msg_1(j,i) = p(j);
+        end
+    end
+end
 
 % 2e Etape
 % ----------------------------------------------------------------------
@@ -44,9 +58,8 @@ for inter = 1:MAX_ITER
     % Mise à jour de l'estimation avec Qi
     c_cor = estimation(c_nodes_msg_0,c_nodes_msg_1, p, H);
     
-    % Test parity check sinon étape 2 sur MAX_ITER
-    %% A COMPRENDRE
-    parity_check = equation_parity_check();
+    % Test du parity check sinon retour à l'étape 2 sur MAX_ITER
+    parity_check = equation_parity_check(H, c_cor);
     if parity_check == 1
         return
     end
@@ -57,9 +70,12 @@ end
 function c_nodes_rsp = reponse_check_nodes (H,v_nodes_msg_1)
 % Calcul la matrice contenant les messages des c-nodes (lignes) vers les
 % v-nodes (colonnes)
-c_nodes_rsp = zeros(size(H,1),size(H:2));
-for j = 1:size(H,1)
-    for i = 1:size(H:2)
+[M, N] = size(H);
+
+c_nodes_rsp = -1*ones(M,N);
+
+for j = 1:M
+    for i = 1:N
         if H(j,i) == 1
             prod = 1;
             for x = 1:size(H,2)
@@ -75,12 +91,13 @@ end
 
 function [v_nodes_rsp_0, v_nodes_rsp_1] = reponse_variable_nodes(H,p,c_nodes_msg_0, c_nodes_msg_1)
 %Initialisation des matrices
-v_nodes_rsp_0 = zeros(size(H,1),size(H:2));
-v_nodes_rsp_1 = zeros(size(H,1),size(H:2));
+[M, N] = size(H);
+v_nodes_rsp_0 = -1*ones(M,N);
+v_nodes_rsp_1 = -1*ones(M,N);
 
 %Calcule des réponses des v-nodes i aux c-nodes j
-for j = 1:size(H,1)
-    for i = 1:size(H:2)
+for j = 1:M
+    for i = 1:N
         if H(j,i) == 1
 
             % Produit des messages des c-nodes reçus par le v-nodes i
@@ -113,20 +130,21 @@ function c_est = estimation (c_nodes_msg_0,c_nodes_msg_1, p, H)
 % Détermine une estimation du mot code c
 
 %Initialisation de la matrice colonne corrigeant le mot code
+[M, N] = size(H);
 c_est = zeros(length(p),1);
 
 % Calcule de Q avec l'aide chaque colonne des matrices messages des c-nodes
-for j = 1:length(p)
+for i = 1:N
 q_prod_0 = 1;
 q_prod_1 = 1;
-    for i = 1:size(H,1)
+    for j = 1:M
         if H(j,i) == 1
             q_prod_0 = q_prod_0*c_nodes_msg_0(j,i);
             q_prod_1 = q_prod_1*c_nodes_msg_1(j,i);
         end
     end
-q_0 = (1-p(j))*q_prod_0;
-q_1 = p(j)*q_prod_1;
+q_0 = (1-p(i))*q_prod_0;
+q_1 = p(i)*q_prod_1;
 
 %Calcul de la constante K
 K = 1/(q_0+q_1);
@@ -137,14 +155,20 @@ q_1 = K*q_1;
 
 % Correction du mot code 
 if q_1>q_0
-    c_est(j) = 1;
+    c_est(i) = 1;
 else
-    c_est(j) = 0;
+    c_est(i) = 0;
 end
 end
 end
 
 %% A CODER
-function parity_check = equation_parity_check ()
-parity_check = 1;
+function parity_check = equation_parity_check (H, c)
+% Vérifie si le mot code c vérifie les équations de parité de la matrice H
+vecteur = mod(H*c,2);
+if sum(vecteur) == 0
+    parity_check = 1;
+else
+    parity_check = 0;
+end
 end
