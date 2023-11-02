@@ -14,30 +14,38 @@ function c_cor = SOFT_DECODER_GROUPE3(c, H, p, MAX_ITER)
 % 
 % c_cor le vecteur colonne binaire de dimension [N, 1]
 
-%% FAIRE LES VERIFICATION DES ENTREES
+% FAIRE LES VERIFICATION DES ENTREES
 
 %1ere Etape
 % -------------------------------------------------------------------------
-% c -> f: Qij ou Qij(1) = Pi et q(0) = 1-Pi
-[M, N] = size(H)
-% Construire une matrice q_0, q_1, r_0 et r_1 de dimenssion [M, N]
-fprintf('Etape 1')
-q_1 = p.*H
-q_0 = (1-q_1).*H
 
+% Initialisation du mot code c_cor qui va être corigé à chaque itération
+c_cor = c;
+%Réccupération de la taille des matrices
+[M, N] = size(H);
+
+% Envoie du premier message 
+% Des variable nodes (v_nodes) vers les check nodes (c_nodes)
+% Initialisation des matrices messages
+v_nodes_msg = ones(M,2);
+c_nodes_msg = ones(N,2);
+
+% Remplissage de la matrice message des variable nodes
+% Avec les probabilités p pour c(i) == 1 sachant le signal reçu
+v_nodes_msg(1:end,1) = p.*v_nodes_msg(1:end,1);
+v_nodes_msg(1:end,2) = (1-p).*v_nodes_msg(1:end,2);
+
+%*************************************************************************
 for inter = 1:MAX_ITER
     % 2e Etape
     % ---------------------------------------------------------------------
     % Calcul des Rij(0) et Rij(1) de chaque f en fonction des q reçus
-    fprintf('Etape 2')
     for i = 1:M
         for j = 1:N
             r_0(i,j) = check_node_message(j,q_1,H);
             r_1(i,j) = 1-r_0(i,j);
         end
     end
-    r_0
-    r_1
     
     % 3e Etape
     % ---------------------------------------------------------------------
