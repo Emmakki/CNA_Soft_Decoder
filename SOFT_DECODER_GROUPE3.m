@@ -42,7 +42,7 @@ for inter = 1:MAX_ITER
     [v_nodes_msg_0, v_nodes_msg_1] = reponse_variable_nodes(H,p,c_nodes_msg_0, c_nodes_msg_1);
 
     % Mise à jour de l'estimation avec Qi
-    c_cor = estimation(c_nodes_msg_0,c_nodes_msg_1, p);
+    c_cor = estimation(c_nodes_msg_0,c_nodes_msg_1, p, H);
     
     % Test parity check sinon étape 2 sur MAX_ITER
     %% A COMPRENDRE
@@ -109,30 +109,37 @@ for j = 1:size(H,1)
 end
 end
 
-%% A RETRAVAILLER
-function c_est = estimation (r_0,r_1, p)
+function c_est = estimation (c_nodes_msg_0,c_nodes_msg_1, p, H)
 % Détermine une estimation du mot code c
+
+%Initialisation de la matrice colonne corrigeant le mot code
 c_est = zeros(length(p),1);
-for i = 1:length(p)
-x0 = 1;
-x1 = 1;
-    for j = 1:size(r_0,1)
-        x0 = x0*r_0(i,j);
-        x1 = x1*r_1(i,j);
+
+% Calcule de Q avec l'aide chaque colonne des matrices messages des c-nodes
+for j = 1:length(p)
+q_prod_0 = 1;
+q_prod_1 = 1;
+    for i = 1:size(H,1)
+        if H(j,i) == 1
+            q_prod_0 = q_prod_0*c_nodes_msg_0(j,i);
+            q_prod_1 = q_prod_1*c_nodes_msg_1(j,i);
+        end
     end
-qi_0 = (1-p(i))*x0;
-qi_1 = p(i)*x1;
+q_0 = (1-p(j))*q_prod_0;
+q_1 = p(j)*q_prod_1;
 
-K = 1/(qi_0+qi_1);
+%Calcul de la constante K
+K = 1/(q_0+q_1);
 
-qi_0 = K*qi_0;
-qi_1 = K*qi_1;
+% Valeur finale pour Q associé à la composante j du mot code
+q_0 = K*q_0;
+q_1 = K*q_1;
 
-if qi_1>qi_0
-    c_est(i) = 1;
+% Correction du mot code 
+if q_1>q_0
+    c_est(j) = 1;
 else
-    c_est(i) = 0;
-
+    c_est(j) = 0;
 end
 end
 end
