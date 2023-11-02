@@ -27,39 +27,33 @@ c_cor = c;
 % Envoie du premier message 
 % Des variable nodes (v_nodes) vers les check nodes (c_nodes)
 % Initialisation des matrices messages
-v_nodes_msg = ones(M,2);
-c_nodes_msg = ones(N,2);
+v_nodes_msg_0 = ones(M,N);
+v_nodes_msg_1 = ones(M,N);
+c_nodes_msg_0 = ones(M,N);
+c_nodes_msg_1 = ones(M,N);
 
 % Remplissage de la matrice message des variable nodes
 % Avec les probabilités p pour c(i) == 1 sachant le signal reçu
-v_nodes_msg(1:end,1) = p.*v_nodes_msg(1:end,1);
-v_nodes_msg(1:end,2) = (1-p).*v_nodes_msg(1:end,2);
+v_nodes_msg_0 = (1-p).*H;
+v_nodes_msg_1 = p.*H;
 
-%*************************************************************************
+% 2e Etape
+% -------------------------------------------------------------------------
 for inter = 1:MAX_ITER
-    % 2e Etape
-    % ---------------------------------------------------------------------
-    % Calcul des Rij(0) et Rij(1) de chaque f en fonction des q reçus
-    for i = 1:M
-        for j = 1:N
-            r_0(i,j) = check_node_message(j,q_1,H);
-            r_1(i,j) = 1-r_0(i,j);
-        end
-    end
+    % Calcul des messages réponse des c_nodes vers les v_nodes
+    c_nodes_msg_0 = reponse_check_nodes (H,v_nodes_msg_1);
+    c_nodes_msg_1 = 1-c_nodes_msg_0;
     
     % 3e Etape
     % ---------------------------------------------------------------------
-    % Mise à jour des Qij en fonction des Qij reçus
+    % Calcul des messages réponse des v_nodes vers les c_nodes
     % /!\ Kij est choisi de tel sorte que Qij(0)+Qij(1) = 1
-    fprintf('Etape 2')
     for i = 1:M
         for j = 1:N
             q_0(i,j), q_1(i,j) = variable_node_message (i,r_0, r_1, H, p(i));
         end
     end
-    q_0
-    q_1
-    
+
     % Mise à jour de l'estimation avec Qi
     
     c_cor = estimation(r_0,r_1, p);
@@ -76,17 +70,21 @@ end
 
 end
 
-function c_node_res = check_node_message (j,q_1,H)
-% Calcule le message réponse r du neud f_j
-
-prod = 1;
-for i = 1:size(H,2)
-    if H(i,j)==1 && i ~= j
-        prod = prod*(1-2*q_1(i,j));
+function c_nodes_rsp = reponse_check_nodes (H,v_nodes_msg_1)
+c_nodes_rsp = zeros(size(H,1),size(H:2));
+for j = 1:size(H,1)
+    for i = 1:size(H:2)
+        if H(j,i) == 1
+            prod = 1;
+            for p = 1:size(H,2)
+                if H(j,p) == 1 && p ~= i
+                    prod = prod*(1-2*v_nodes_msg_1(j,p));
+                end
+            end
+            c_nodes_rsp(j,i) = (1/2) + (1/2)*prod;
+        end
     end
-c_node_res = (1/2) + (1/2)*prod;
 end
-
 end
 
 %% A RETRAVAILLER
