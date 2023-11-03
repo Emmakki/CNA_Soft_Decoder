@@ -77,13 +77,16 @@ c_nodes_rsp_1 = -1*ones(M,N);
 for i = 1:M
     for j = 1:N
         if H(i,j) == 1
-            prod = 1;
-            for x = 1:N
-                if H(i,x) == 1 && x ~= j
-                    prod = prod*(1-2*v_nodes_msg_1(x,i));
-                end
-            end
-            c_nodes_rsp_0(i,j) = (1/2) + (1/2)*prod;
+            
+            % Récupération de tout les messages reçus pour le c_nodes i
+            v_nodes_i = v_nodes_msg_1(1:end,i);
+            % Retire les v_nodes n'étant pas connectés au c_nodes
+            p = v_nodes_i(v_nodes_i ~= -1);
+            % Produit des messages reçu par le c_nodes sauf celui envoyé
+            % par le v_nodes duquel on calcule le message
+            p = prod(1-2*p)/(1-2*v_nodes_msg_1(j,i));
+
+            c_nodes_rsp_0(i,j) = (1/2) + (1/2)*p;
             c_nodes_rsp_1(i,j) = 1-c_nodes_rsp_0(i,j);
         end
     end
