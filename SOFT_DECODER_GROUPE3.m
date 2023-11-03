@@ -67,7 +67,7 @@ end
 end
 
 function [c_nodes_rsp_0, c_nodes_rsp_1] = reponse_check_nodes (H,v_nodes_msg_1)
-% Calcul la matrice contenant les messages des c-nodes vers les
+% Calcul les matrices contenant les messages des c-nodes vers les
 % v-nodes
 [M, N] = size(H);
 
@@ -94,6 +94,9 @@ end
 end
 
 function [v_nodes_rsp_0, v_nodes_rsp_1] = reponse_variable_nodes(H,p,c_nodes_msg_0, c_nodes_msg_1)
+% Calcul les matrices contenant les messages des v-nodes vers les
+% c-nodes
+
 %Initialisation des matrices
 [M, N] = size(H);
 
@@ -141,14 +144,17 @@ c_est = zeros(length(p),1);
 
 % Calcule de Q avec l'aide chaque colonne des matrices messages des c-nodes
 for i = 1:N
-q_prod_0 = 1;
-q_prod_1 = 1;
-    for j = 1:M
-        if H(j,i) == 1
-            q_prod_0 = q_prod_0*c_nodes_msg_0(j,i);
-            q_prod_1 = q_prod_1*c_nodes_msg_1(j,i);
-        end
-    end
+
+% Récupération de tout les messages reçus pour le v_nodes i
+c_nodes_i_0 = c_nodes_msg_0(1:end,i);
+c_nodes_i_1 = c_nodes_msg_1(1:end,i);
+% Retire les c_nodes n'étant pas connectés au v_nodes
+produit_0 = c_nodes_i_0(c_nodes_i_0 ~= -1);
+produit_1 = c_nodes_i_1(c_nodes_i_1 ~= -1);
+
+q_prod_0 = prod(produit_0);
+q_prod_1 = prod(produit_1);
+
 q_0 = (1-p(i))*q_prod_0;
 q_1 = p(i)*q_prod_1;
 
