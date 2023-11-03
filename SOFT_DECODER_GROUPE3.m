@@ -77,7 +77,7 @@ c_nodes_rsp_1 = -1*ones(M,N);
 for i = 1:M
     for j = 1:N
         if H(i,j) == 1
-            
+
             % Récupération de tout les messages reçus pour le c_nodes i
             v_nodes_i = v_nodes_msg_1(1:end,i);
             % Retire les v_nodes n'étant pas connectés au c_nodes
@@ -105,18 +105,19 @@ for i = 1:N
     for j = 1:M
         if H(j,i) == 1
 
-            % Produit des messages des c-nodes reçus par le v-nodes i
-            % A l'exception du messages du c-node j auquel on envoie
-            c_prod_0 = 1;
-            c_prod_1 = 1;
-            for x = 1:M
-                if H(x,i) == 1 && x ~= j
-                    c_prod_0 = c_prod_0*c_nodes_msg_0(x,i);
-                    c_prod_1 = c_prod_1*c_nodes_msg_1(x,i);
-                end
-            end
-            v_nodes_rsp_0(i,j) = (1-p(i))*c_prod_0;
-            v_nodes_rsp_1(i,j) = p(i)*c_prod_1;
+            % Récupération de tout les messages reçus pour le v_nodes i
+            c_nodes_i_0 = c_nodes_msg_0(1:end,i);
+            c_nodes_i_1 = c_nodes_msg_1(1:end,i);
+            % Retire les c_nodes n'étant pas connectés au v_nodes
+            produit_0 = c_nodes_i_0(c_nodes_i_0 ~= -1);
+            produit_1 = c_nodes_i_1(c_nodes_i_1 ~= -1);
+            % Produit des messages reçu par le v_nodes sauf celui envoyé
+            % par le c_nodes duquel on calcule le message
+            produit_0 = prod(produit_0)/(c_nodes_msg_0(j,i));
+            produit_1 = prod(produit_1)/(c_nodes_msg_1(j,i));
+
+            v_nodes_rsp_0(i,j) = (1-p(i))*produit_0;
+            v_nodes_rsp_1(i,j) = p(i)*produit_1;
 
             %Calcul de la constante K
             % Où v_nodes_rsp_0(j,i) + v_nodes_rsp_1(j,i) = 1
