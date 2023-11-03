@@ -27,17 +27,17 @@ c_cor = c;
 
 % Initialisation des matrices contenant les messages transmits entre les
 % noeuds (v_nodes et c_nodes)
-v_nodes_msg_0 = -1*ones(M,N);
-v_nodes_msg_1 = -1*ones(M,N);
+v_nodes_msg_0 = -1*ones(N,M);
+v_nodes_msg_1 = -1*ones(N,M);
 
 % Envoie du premier message 
 % Des variable nodes (v_nodes) vers les check nodes (c_nodes)
 % Avec les probabilités p pour c(i) == 1 sachant le signal reçu
-for j = 1:M
-    for i = 1:N
+for i = 1:N
+    for j = 1:M
         if H(j,i) == 1
-            v_nodes_msg_0(j,i) = 1-p(j);
-            v_nodes_msg_1(j,i) = p(j);
+            v_nodes_msg_0(i,j) = 1-p(i);
+            v_nodes_msg_1(i,j) = p(i);
         end
     end
 end
@@ -46,8 +46,7 @@ end
 % ----------------------------------------------------------------------
 for inter = 1:MAX_ITER
     % Calcul des messages réponse des c_nodes vers les v_nodes
-    c_nodes_msg_0 = reponse_check_nodes (H,v_nodes_msg_1);
-    c_nodes_msg_1 = 1-c_nodes_msg_0;
+    [c_nodes_msg_0, c_nodes_msg_1] = reponse_check_nodes (H,v_nodes_msg_1);
     
     % 3e Etape
     % ------------------------------------------------------------------
@@ -67,23 +66,25 @@ for inter = 1:MAX_ITER
 end
 end
 
-function c_nodes_rsp = reponse_check_nodes (H,v_nodes_msg_1)
-% Calcul la matrice contenant les messages des c-nodes (lignes) vers les
-% v-nodes (colonnes)
+function [c_nodes_rsp_0, c_nodes_rsp_1] = reponse_check_nodes (H,v_nodes_msg_1)
+% Calcul la matrice contenant les messages des c-nodes vers les
+% v-nodes
 [M, N] = size(H);
 
-c_nodes_rsp = -1*ones(M,N);
+c_nodes_rsp_0 = -1*ones(M,N);
+c_nodes_rsp_1 = -1*ones(M,N);
 
-for j = 1:M
-    for i = 1:N
-        if H(j,i) == 1
+for i = 1:M
+    for j = 1:N
+        if H(i,j) == 1
             prod = 1;
-            for x = 1:size(H,2)
-                if H(j,x) == 1 && x ~= i
-                    prod = prod*(1-2*v_nodes_msg_1(j,x));
+            for x = 1:N
+                if H(i,x) == 1 && x ~= j
+                    prod = prod*(1-2*v_nodes_msg_1(x,i));
                 end
             end
-            c_nodes_rsp(j,i) = (1/2) + (1/2)*prod;
+            c_nodes_rsp_0(i,j) = (1/2) + (1/2)*prod;
+            c_nodes_rsp_1(i,j) = 1-c_nodes_rsp_0(i,j);
         end
     end
 end
@@ -92,34 +93,35 @@ end
 function [v_nodes_rsp_0, v_nodes_rsp_1] = reponse_variable_nodes(H,p,c_nodes_msg_0, c_nodes_msg_1)
 %Initialisation des matrices
 [M, N] = size(H);
+
 v_nodes_rsp_0 = -1*ones(M,N);
 v_nodes_rsp_1 = -1*ones(M,N);
 
 %Calcule des réponses des v-nodes i aux c-nodes j
-for j = 1:M
-    for i = 1:N
+for i = 1:N
+    for j = 1:M
         if H(j,i) == 1
 
             % Produit des messages des c-nodes reçus par le v-nodes i
             % A l'exception du messages du c-node j auquel on envoie
             c_prod_0 = 1;
             c_prod_1 = 1;
-            for x = 1:size(H,1)
+            for x = 1:M
                 if H(x,i) == 1 && x ~= j
                     c_prod_0 = c_prod_0*c_nodes_msg_0(x,i);
                     c_prod_1 = c_prod_1*c_nodes_msg_1(x,i);
                 end
             end
-            v_nodes_rsp_0(j,i) = (1-p(j))*c_prod_0;
-            v_nodes_rsp_1(j,i) = p(j)*c_prod_1;
+            v_nodes_rsp_0(i,j) = (1-p(i))*c_prod_0;
+            v_nodes_rsp_1(i,j) = p(i)*c_prod_1;
 
             %Calcul de la constante K
             % Où v_nodes_rsp_0(j,i) + v_nodes_rsp_1(j,i) = 1
-            K = 1/(v_nodes_rsp_0(j,i)+v_nodes_rsp_1(j,i));
+            K = 1/(v_nodes_rsp_0(i,j)+v_nodes_rsp_1(i,j));
 
             % Valeur finale de la réponse du v-node i au c-node j
-            v_nodes_rsp_0(j,i) = K*v_nodes_rsp_0(j,i);
-            v_nodes_rsp_1(j,i) = K*v_nodes_rsp_1(j,i);
+            v_nodes_rsp_0(i,j) = K*v_nodes_rsp_0(i,j);
+            v_nodes_rsp_1(i,j) = K*v_nodes_rsp_1(i,j);
 
         end
     end
@@ -162,7 +164,6 @@ end
 end
 end
 
-%% A CODER
 function parity_check = equation_parity_check (H, c)
 % Vérifie si le mot code c vérifie les équations de parité de la matrice H
 vecteur = mod(H*c,2);
