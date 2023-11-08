@@ -1,6 +1,6 @@
 %% LDPC_STUDENT_TEST_SCRIPT.m
 % =========================================================================
-% *Author:* Lélio CHETOT, *Date:* 2020, December 04
+% *Author:* Lélio CHETOT, *Date:* 2023, October 31 🎃
 % =========================================================================
 % This script provides the students with an automated process to test their
 % decoders from a dataset.
@@ -36,12 +36,12 @@ H = logical([
     ]);
 
 % Maximum number of iterations
-MAX_ITER = 50;
+MAX_ITER = 100;
 
 % Loop for the tests
-fprintf('+ -----------------------------------------------------+\n')
-fprintf('| Tests\t|\tHard\tSoft\t|\tHard (ref)\tSoft (ref) |\n')
-fprintf('+ -----------------------------------------------------+\n')
+fprintf('+--------------------------------------------------------------------------------------------------------------------------+\n')
+fprintf('| Tests\t|\tTrue == Flip\t|\tTrue == Hard\tTrue == Hard\t|\tHard == Hard (ref)\tSoft == Soft (ref) |\n')
+fprintf('+--------------------------------------------------------------------------------------------------------------------------+\n')
 for n = 1:N_data
     fprintf('| %5d\t|\t', n)
     % Data
@@ -56,17 +56,20 @@ for n = 1:N_data
     
     % Run the decoders
     % Replace i with your group number.
-    c_hard = HARD_DECODER_GROUPEi(c_ds_flip, H, MAX_ITER);
-    c_soft = SOFT_DECODER_GROUPEi(c_ds_flip, H, P1_ds, MAX_ITER);
+    %c_hard = HARD_DECODER_GROUPEi(c_ds_flip, H, MAX_ITER);
+    c_soft = SOFT_DECODER_GROUPE3(c_ds_flip, H, P1_ds, MAX_ITER);
     
+    % Comparison with the flipped codeword
+    fprintf('%12s\t|\t', string(isequal(c_ds_true , c_ds_flip)))
+
     % Comparison with the true codeword
-    % If the they return 1, the two vectors are equal.
-    fprintf('%4d.\t', isequal(c_hard, c_ds_true))
-    fprintf('%4d.\t|\t', isequal(c_soft, c_ds_true))
+    % If they return 1, the two vectors are equal.
+    %fprintf('%12s\t', string(isequal(c_ds_true, c_hard)))
+    fprintf('%12s\t|\t', string(isequal(c_ds_true, c_soft)))
     
     % Comparison with corrected data form the dataset
-    % If the they return 1, the two vectors are equal.
-    fprintf('%9d.\t', isequal(c_hard, c_ds_hard))
-    fprintf('%9d. |\n', isequal(c_soft, c_ds_soft))
+    % If they return 1, the two vectors are equal.
+    %fprintf('%18s\t', string(isequal(c_hard, c_ds_hard)))
+    fprintf('%18s |\n', string(isequal(c_soft, c_ds_soft)))
 end
-fprintf('+ ------------------------------------------------------+\n')
+fprintf('+--------------------------------------------------------------------------------------------------------------------------+\n')

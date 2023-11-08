@@ -6,15 +6,47 @@
 
 function c_cor = SOFT_DECODER_GROUPE3(c, H, p, MAX_ITER)
 % SOFT_DECODER_GROUPE3 Fonction de décodage LDPC: Soft decision
-% 
+
 % c : un vecteur colonne binaire de dimension [N, 1]
 % H : une matrice de parité de dimension [M, N] constituée de true et false
 % p : un vecteur colonne de dimension [N, 1]
 % MAX_ITER : un entier strictement positif
-% 
+
 % c_cor le vecteur colonne binaire de dimension [N, 1]
 
-% FAIRE LES VERIFICATION DES ENTREES
+% Vérification des entrées
+% MAX_ITER est un entier strictement positif
+if MAX_ITER <= 0
+    fprintf('MAX_INTER doit être un entier strictement positif\n')
+    return
+elseif round(MAX_ITER) ~= MAX_ITER
+    fprintf('MAX_INTER doit être un entier strictement positif\n')
+    return
+end
+
+% c est un vecteur colonne binaire
+if c(c(c~=1)~=0) ~= []
+    fprintf('c contient seulement des valeurs binaire\n')
+    return
+elseif size(c,2)~=1
+    fprintf('c doit être un vecteur colonne\n')
+    return
+end
+
+% p est un vecteur colonne
+if size(p,2)~=1
+    fprintf('p doit être un vecteur colonne\n')
+    return
+end
+
+% H est une matrice binaire de dimension [M, N]
+if H(H(H~=1)~=0) ~= []
+    fprintf('H contient seulement des valeurs binaire\n')
+    return
+elseif size(H,2) ~= size(c,1)
+    fprintf('H doit être de dimension [M,N] et c de dimension [N,1]\n')
+    return
+end
 
 %1ere Etape
 % -------------------------------------------------------------------------
@@ -26,7 +58,7 @@ c_cor = c;
 [M, N] = size(H);
 
 % Initialisation des matrices contenant les messages transmits entre les
-% noeuds (v_nodes et c_nodes)
+% noeuds (v_nodes -> c_nodes) (ligne -> colonne)
 v_nodes_msg_0 = -1*ones(N,M);
 v_nodes_msg_1 = -1*ones(N,M);
 
@@ -43,14 +75,13 @@ for i = 1:N
 end
 
 % 2e Etape
-% ----------------------------------------------------------------------
+% -------------------------------------------------------------------------
 for inter = 1:MAX_ITER
     % Calcul des messages réponse des c_nodes vers les v_nodes
     [c_nodes_msg_0, c_nodes_msg_1] = reponse_check_nodes (H,v_nodes_msg_1);
     
     % 3e Etape
-    % ------------------------------------------------------------------
-    
+    % ---------------------------------------------------------------------
     % Calcul des messages réponse des v_nodes vers les c_nodes
     [v_nodes_msg_0, v_nodes_msg_1] = reponse_variable_nodes(H,p,c_nodes_msg_0, c_nodes_msg_1);
 
@@ -68,7 +99,7 @@ end
 
 function [c_nodes_rsp_0, c_nodes_rsp_1] = reponse_check_nodes (H,v_nodes_msg_1)
 % Calcul les matrices contenant les messages des c-nodes vers les
-% v-nodes
+% v-nodes (ligne vers colonne)
 [M, N] = size(H);
 
 c_nodes_rsp_0 = -1*ones(M,N);
@@ -82,7 +113,7 @@ for i = 1:M
             v_nodes_i = v_nodes_msg_1(1:end,i);
             % Retire les v_nodes n'étant pas connectés au c_nodes
             p = v_nodes_i(v_nodes_i ~= -1);
-            % Produit des messages reçu par le c_nodes sauf celui envoyé
+            % Produit des messages reçu par le c_nodes, sauf celui envoyé
             % par le v_nodes duquel on calcule le message
             p = prod(1-2*p)/(1-2*v_nodes_msg_1(j,i));
 
@@ -95,26 +126,26 @@ end
 
 function [v_nodes_rsp_0, v_nodes_rsp_1] = reponse_variable_nodes(H,p,c_nodes_msg_0, c_nodes_msg_1)
 % Calcul les matrices contenant les messages des v-nodes vers les
-% c-nodes
+% c-nodes (ligne vers colonne)
 
 %Initialisation des matrices
 [M, N] = size(H);
 
-v_nodes_rsp_0 = -1*ones(M,N);
-v_nodes_rsp_1 = -1*ones(M,N);
+v_nodes_rsp_0 = -1*ones(N,M);
+v_nodes_rsp_1 = -1*ones(N,M);
 
-%Calcule des réponses des v-nodes i aux c-nodes j
+%Calcule des réponses des v-nodes i vers les c-nodes j
 for i = 1:N
     for j = 1:M
         if H(j,i) == 1
 
-            % Récupération de tout les messages reçus pour le v_nodes i
+            % Récupération de tout les messages reçus par le v_nodes i
             c_nodes_i_0 = c_nodes_msg_0(1:end,i);
             c_nodes_i_1 = c_nodes_msg_1(1:end,i);
             % Retire les c_nodes n'étant pas connectés au v_nodes
             produit_0 = c_nodes_i_0(c_nodes_i_0 ~= -1);
             produit_1 = c_nodes_i_1(c_nodes_i_1 ~= -1);
-            % Produit des messages reçu par le v_nodes sauf celui envoyé
+            % Produit des messages reçu par le v_nodes, sauf celui envoyé
             % par le c_nodes duquel on calcule le message
             produit_0 = prod(produit_0)/(c_nodes_msg_0(j,i));
             produit_1 = prod(produit_1)/(c_nodes_msg_1(j,i));
@@ -138,8 +169,9 @@ end
 function c_est = estimation (c_nodes_msg_0,c_nodes_msg_1, p, H)
 % Détermine une estimation du mot code c
 
-%Initialisation de la matrice colonne corrigeant le mot code
-[M, N] = size(H);
+% Initialisation de la matrice colonne 
+% contenant une estimation du le mot code
+N = size(H,2);
 c_est = zeros(length(p),1);
 
 % Calcule de Q avec l'aide chaque colonne des matrices messages des c-nodes
@@ -161,7 +193,7 @@ q_1 = p(i)*q_prod_1;
 %Calcul de la constante K
 K = 1/(q_0+q_1);
 
-% Valeur finale pour Q associé à la composante j du mot code
+% Valeur finale pour Q associé à la composante i du mot code
 q_0 = K*q_0;
 q_1 = K*q_1;
 
@@ -176,6 +208,7 @@ end
 
 function parity_check = equation_parity_check (H, c)
 % Vérifie si le mot code c vérifie les équations de parité de la matrice H
+
 vecteur = mod(H*c,2);
 if sum(vecteur) == 0
     parity_check = 1;
